@@ -2,7 +2,8 @@
 #include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <ros/ros.h>
+
+#include <ros/node_handle.h>
 
 #include <nav_msgs/Odometry.h>
 #include <sensor_msgs/Imu.h>
@@ -14,11 +15,12 @@
 #include <opencv/cv.h>
 #include <opencv2/highgui/highgui.hpp>
 
-#include <pcl/ros/conversions.h>
+#include <pcl/conversions.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/kdtree/kdtree_flann.h>
+#include <pcl_ros/point_cloud.h>
 
 const double PI = 3.1415926;
 const double rad2deg = 180 / PI;
@@ -189,12 +191,11 @@ void pointAssociateToMap(pcl::PointXYZHSV *pi, pcl::PointXYZHSV *po)
   po->v = pi->v;
 }
 
-void laserCloudLastHandler(const sensor_msgs::PointCloud2ConstPtr& laserCloudLast2)
+void laserCloudLastHandler(const pcl::PointCloud<pcl::PointXYZHSV>::ConstPtr& laserCloudLast2)
 {
-  timeLaserCloudLast = laserCloudLast2->header.stamp.toSec();
+  timeLaserCloudLast = pcl_conversions::fromPCL(laserCloudLast2->header.stamp).toSec();
 
-  laserCloudLast->clear();
-  pcl::fromROSMsg(*laserCloudLast2, *laserCloudLast);
+  *laserCloudLast = *laserCloudLast2;
 
   newLaserCloudLast = true;
 }
@@ -223,7 +224,7 @@ int main(int argc, char** argv)
   ros::init(argc, argv, "laserMapping");
   ros::NodeHandle nh;
 
-  ros::Subscriber subLaserCloudLast2 = nh.subscribe<sensor_msgs::PointCloud2> 
+  ros::Subscriber subLaserCloudLast2 = nh.subscribe<pcl::PointCloud<pcl::PointXYZHSV> >
                                        ("/laser_cloud_last_2", 2, laserCloudLastHandler);
 
   ros::Subscriber subLaserOdometry = nh.subscribe<nav_msgs::Odometry> 

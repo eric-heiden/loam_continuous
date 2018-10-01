@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>loam_continuous</name>
+  <version>1.0.0</version>
+  <description>Laser Odometry and Mapping (continuous spin version)</description>
+  <author>Ji Zhang</author>
+  <maintainer email="heiden@usc.edu">Eric Heiden</maintainer>
+  <license>BSD</license>
+  <url>http://wiki.ros.org/loam_continuous</url>
+  <buildtool_depend>catkin</buildtool_depend>
+  <depend>roscpp</depend>
+  <depend>std_msgs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>opencv2</depend>
+  <depend>pcl_ros</depend>
+
+</package>
+
+

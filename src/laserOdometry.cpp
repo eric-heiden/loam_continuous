@@ -2,7 +2,8 @@
 #include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <ros/ros.h>
+
+#include <ros/node_handle.h>
 
 #include <nav_msgs/Odometry.h>
 #include <sensor_msgs/Imu.h>
@@ -14,11 +15,12 @@
 #include <opencv/cv.h>
 #include <opencv2/highgui/highgui.hpp>
 
-#include <pcl/ros/conversions.h>
+#include <pcl/conversions.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/kdtree/kdtree_flann.h>
+#include <pcl_ros/point_cloud.h>
 
 const double PI = 3.1415926;
 const double rad2deg = 180 / PI;
@@ -262,17 +264,15 @@ void PluginIMURotation(float bcx, float bcy, float bcz, float blx, float bly, fl
   acz = atan2(srzcrx / cos(acx), crzcrx / cos(acx));
 }
 
-void laserCloudExtreCurHandler(const sensor_msgs::PointCloud2ConstPtr& laserCloudExtreCur2)
+void laserCloudExtreCurHandler(const pcl::PointCloud<pcl::PointXYZHSV>::ConstPtr& laserCloudExtreCur3)
 {
   if (!systemInited) {
-    initTime = laserCloudExtreCur2->header.stamp.toSec();
+    initTime = pcl_conversions::fromPCL(laserCloudExtreCur3->header.stamp).toSec();
     systemInited = true;
   }
-  timeLaserCloudExtreCur = laserCloudExtreCur2->header.stamp.toSec();
+  timeLaserCloudExtreCur = pcl_conversions::fromPCL(laserCloudExtreCur3->header.stamp).toSec();
   timeLasted = timeLaserCloudExtreCur - initTime;
 
-  pcl::PointCloud<pcl::PointXYZHSV>::Ptr laserCloudExtreCur3(new pcl::PointCloud<pcl::PointXYZHSV>());
-  pcl::fromROSMsg(*laserCloudExtreCur2, *laserCloudExtreCur3);
   int laserCloudExtreCur3Size = laserCloudExtreCur3->points.size();
 
   laserCloudExtreCur->clear();
@@ -297,7 +297,6 @@ void laserCloudExtreCurHandler(const sensor_msgs::PointCloud2ConstPtr& laserClou
       laserCloudExtreCur->push_back(laserCloudExtreCur3->points[i]);
     }
   }
-  laserCloudExtreCur3->clear();
 
   if (!imuInited) {
     transformSum[0] += imuPitchStartCur;
@@ -312,10 +311,10 @@ void laserCloudExtreCurHandler(const sensor_msgs::PointCloud2ConstPtr& laserClou
   }
 }
 
-void laserCloudLastHandler(const sensor_msgs::PointCloud2ConstPtr& laserCloudLast2)
+void laserCloudLastHandler(const pcl::PointCloud<pcl::PointXYZHSV>::ConstPtr& laserCloudLast2)
 {
-  if (laserCloudLast2->header.stamp.toSec() > timeLaserCloudLast + 0.005) {
-    timeLaserCloudLast = laserCloudLast2->header.stamp.toSec();
+  if (pcl_conversions::fromPCL(laserCloudLast2->header.stamp).toSec() > timeLaserCloudLast + 0.005) {
+    timeLaserCloudLast = pcl_conversions::fromPCL(laserCloudLast2->header.stamp).toSec();
     startTimeLast = startTimeCur;
     startTimeCur = timeLaserCloudLast - initTime;
 
@@ -328,7 +327,7 @@ void laserCloudLastHandler(const sensor_msgs::PointCloud2ConstPtr& laserCloudLas
     laserCloudSurfLast = laserCloudPointer;
 
     laserCloudLast->clear();
-    pcl::fromROSMsg(*laserCloudLast2, *laserCloudLast);
+    *laserCloudLast = *laserCloudLast2;
     int laserCloudLastSize = laserCloudLast->points.size();
 
     laserCloudExtreLast->clear();
@@ -387,10 +386,10 @@ int main(int argc, char** argv)
   ros::init(argc, argv, "laserOdometry");
   ros::NodeHandle nh;
 
-  ros::Subscriber subLaserCloudExtreCur = nh.subscribe<sensor_msgs::PointCloud2> 
+  ros::Subscriber subLaserCloudExtreCur = nh.subscribe<pcl::PointCloud<pcl::PointXYZHSV> >
                                           ("/laser_cloud_extre_cur", 2, laserCloudExtreCurHandler);
 
-  ros::Subscriber subLaserCloudLast = nh.subscribe<sensor_msgs::PointCloud2> 
+  ros::Subscriber subLaserCloudLast = nh.subscribe<pcl::PointCloud<pcl::PointXYZHSV> >
                                       ("/laser_cloud_last", 2, laserCloudLastHandler);
 
   ros::Publisher pubLaserCloudLast2 = nh.advertise<sensor_msgs::PointCloud2> ("/laser_cloud_last_2", 2);
